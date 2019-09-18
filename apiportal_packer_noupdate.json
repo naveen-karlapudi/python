@@ -1,0 +1,56 @@
+{
+ "variables": {
+    "configservice_env": "",
+    "awsAccountId": "",
+    "baseAMI": "",
+    "pemFilePath":""
+  },
+ "builders": [
+ {
+ "type": "amazon-ebs",
+ "region": "us-west-2",
+ "source_ami": "{{user `baseAMI`}}",
+ "instance_type": "c4.2xlarge",
+ "ssh_username": "ec2-user",
+ "ami_name": "configservice-aws-packer_{{timestamp}}",
+ "vpc_id": "vpc-b336e1d5",
+ "subnet_id":"subnet-38d2e971",
+ "ssh_keypair_name":"config-preprod-6493",
+ "ssh_private_key_file":"{{user `pemFilePath`}}",
+ "ssh_private_ip":true,
+ "communicator":"ssh",
+ "ssh_bastion_host":"ec2-35-166-89-168.us-west-2.compute.amazonaws.com",
+ "ssh_bastion_private_key_file":"{{user `pemFilePath`}}",
+ "ssh_bastion_username":"ec2-user",
+ "ami_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_size": 15,
+            "delete_on_termination": true
+        } ],
+ "launch_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_size": 15,
+            "delete_on_termination": true
+        } ],
+ "ssh_timeout":"5m",
+ "security_group_id":"sg-5443ec29",
+ "ami_description":"ConfigService AMI",
+ "iam_instance_profile":"PackerTrustRole-EC2",
+ "tags": {
+    "PRODUCT": "configservice"
+  }}],
+ "provisioners": [
+    {
+  "type": "chef-solo",
+  "staging_directory": "/opt/packer-chef-solo/",
+  "cookbook_paths": ["cookbooks"],
+  "run_list": "recipe[servicesfabric_configservice]",
+  "json": { "servicesfabric_configservice": {"env": "{{user `configservice_env`}}", "awsAccountId":"{{user `awsAccountId`}}"}},
+  "install_command": "curl -L https://www.chef.io/chef/install.sh | {{if .Sudo}}sudo{{end}} bash"
+    },
+    {
+  "type":"shell",
+  "inline":["sh /tmp/settimezone.sh"]
+    }
+  ]
+}

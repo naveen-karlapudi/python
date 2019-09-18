@@ -1,0 +1,59 @@
+{
+ "variables": {
+    "apiportal_env": "",
+    "awsAccountId": "",
+    "baseAMI": "",
+    "pemFilePath":""
+  },
+ "builders": [
+ {
+ "type": "amazon-ebs",
+ "region": "us-west-2",
+ "source_ami": "{{user `baseAMI`}}",
+ "instance_type": "c4.xlarge",
+ "ssh_username": "ec2-user",
+ "ami_name": "apiportal-aws-packer_{{timestamp}}",
+ "vpc_id": "vpc-0fba30e7d6c154cc6",
+ "subnet_id":"subnet-01271472ec4f4e64e",
+ "ssh_keypair_name":"apiportal-preprod-7288",
+ "ssh_private_key_file":"{{user `pemFilePath`}}",
+ "communicator":"ssh",
+ "ssh_bastion_host":"ec2-35-163-191-232.us-west-2.compute.amazonaws.com",
+ "ssh_bastion_private_key_file":"{{user `pemFilePath`}}",
+ "ssh_bastion_username":"ec2-user",
+ "ami_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_size": 15,
+            "delete_on_termination": true
+        } ],
+ "launch_block_device_mappings": [ {
+            "device_name": "/dev/sda1",
+            "volume_size": 15,
+            "delete_on_termination": true
+        } ],
+ "ssh_timeout":"5m",
+ "security_group_id":"sg-0a40b4707e5278e8d",
+ "ami_description":"apiportal AMI",
+ "iam_instance_profile":"PackerTrustRole-EC2",
+ "tags": {
+    "PRODUCT": "apiportal-nginx"
+  }}],
+ "provisioners": [
+    {
+  "type": "chef-solo",
+  "staging_directory": "/opt/packer-chef-solo/",
+  "cookbook_paths": ["cookbooks"],
+  "run_list": "recipe[servicesfabric_apiportal]",
+  "json": { "servicesfabric_apiportal": {"env": "{{user `apiportal_env`}}", "awsAccountId":"{{user `awsAccountId`}}"}},
+  "install_command": "curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 14.12.9"
+    },
+    {
+  "type":"shell",
+  "inline":["sh /tmp/settimezone.sh"]
+    },
+    {
+    "type":"shell",
+    "inline":["sudo yum update -y"]
+    }
+  ]
+}

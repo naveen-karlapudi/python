@@ -1,0 +1,231 @@
+{
+ "AWSTemplateFormatVersion" : "2010-09-09",
+ "Description" : "Service Fabric apiportal Stack",
+ "Parameters" : {
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type" : "String",
+      "Default": "apiportal-prod-6239"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+                    "m3.medium",
+                    "m3.xlarge",
+                    "m4.large",
+                    "m3.2xlarge",
+                    "c3.large",
+                    "c3.xlarge",
+                    "m4.4xlarge",
+                    "c3.2xlarge",
+                    "c4.large",
+                    "c4.xlarge",
+                    "c4.2xlarge"
+                        ],
+      "ConstraintDescription": "must be a valid EC2 instance type that supports the chosen AMI.",
+      "Default": "m4.large",
+      "Description": "EC2 instance sizes.",
+      "Type": "String"
+    },
+    "AMIId": {
+            "Default": "ami-0f69369fb747e32eb",
+            "Description": "Name of the AMI Id",
+            "Type": "String"
+    },
+    "apiportalenv": {
+            "Default": "prd",
+            "Description": "apiportal env",
+            "Type": "String",
+            "AllowedValues": [
+                "qal",
+                "e2e",
+                "prf",
+                "rtb",
+                "prd"
+            ]
+    },
+    "secretcliversion": {
+         "Default": "2.4.0.0",
+         "Description": "Application artifact version",
+         "Type": "String"
+    },
+    "ngnixversion": {
+         "Default": "1.10c.1-1.el6",
+         "Description": "Application artifact version",
+         "Type": "String"
+    },
+    "InstanceSecurityGroupId": {
+            "Default": "sg-06921f5d952e6d2c2",
+            "Description": "apiportal SecurityGroups",
+            "Type": "String"
+    },
+    "apiportalAsgMin": {
+         "Default": "3",
+         "Description": "Number of Min Nginx instances",
+         "Type" : "Number"
+    },
+    "apiportalAsgMax": {
+      "Default": "3",
+      "Description": "Number of Max Nginx instances",
+      "Type" : "Number"
+    },
+    "InstanceProfile": {
+            "Default": "devportal_nginx",
+            "Description": "Name of the Instance Role",
+            "Type": "String"
+    },
+    "myVpc": {
+          "Type": "AWS::EC2::VPC::Id",
+          "Default": "vpc-0c85760d5178212b8",
+          "Description": "The VPC ID holding Subnets specified above."
+    },
+    "apiportalClusterEc2Subnets": {
+          "Type": "CommaDelimitedList",
+          "Default": "subnet-0981ec20d7cb4ab1e,subnet-0e98fde1937a62dd8,subnet-00b893434845ff1d1",
+          "Description": "SubnetId for EC2 instance"
+    },
+    "VPCAvailabilityZones": {
+            "Default": "us-west-2a,us-west-2b,us-west-2c",
+            "Description": "availability zone in vpc e.g us-west-2a, us-west-2b, us-west-2c",
+            "Type": "CommaDelimitedList"
+    }
+  },
+"Mappings" : {
+    "Route53Zone" : {
+      "qal" : { "zonename" : "af-ppd.a.intuit.com." },
+      "e2e" : { "zonename" : "af-ppd.a.intuit.com." },
+      "prf" : { "zonename" : "af-ppd.a.intuit.com." },
+      "rtb" : { "zonename" : "af-ppd.a.intuit.com." },
+      "prd" : { "zonename" : "af-prd.a.intuit.com." }
+   }
+  },
+"Resources" : {
+"apiportalInstances": {
+        "Properties": {
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroupId" } ],
+                "IamInstanceProfile": { "Ref" : "InstanceProfile" },
+                "ImageId" : {
+                    "Ref" : "AMIId"
+                },
+                "InstanceType" : { "Ref" : "InstanceType" },
+                "InstanceMonitoring": "true",
+                "UserData": { "Fn::Base64": { "Fn::Join": [ "", [
+                    "#!/bin/bash -ex","\n",
+                    "echo \"",
+                        {
+                            "Ref": "apiportalenv"
+                        },
+                    "\" > /usr/local/apiportal/conf/param_env\n",
+                    "echo \"",
+                        {
+                            "Ref": "secretcliversion"
+                        },
+                    "\" > /usr/local/apiportal/conf/param_secretcli_version\n",
+                    "echo \"",
+                        {
+                            "Ref": "ngnixversion"
+                        },
+                    "\" > /usr/local/apiportal/conf/param_ngnix_version\n",
+                    "echo \"",
+                        {
+                            "Fn::FindInMap" : [ "Route53Zone", { "Ref" : "apiportalenv" }, "zonename" ]
+                        },
+                    "\" > /usr/local/apiportal/conf/param_zone\n",
+                    "ln -s /opt/packer-chef-solo /opt/packer-chef-client\n",
+                    "sh /usr/local/apiportal/conf/create_node_override.sh\n",
+                    "chef-solo -c /opt/packer-chef-solo/solo.rb -o 'recipe[servicesfabric_apiportal::download_certs_credientials]' -j /opt/packer-chef-solo/node_override.json\n",
+                    "chef-solo -c /opt/packer-chef-solo/solo.rb -o 'recipe[servicesfabric_apiportal::ngnix_config]' -j /opt/packer-chef-solo/node_override.json\n",
+                    "chef-solo -c /opt/packer-chef-solo/solo.rb -o 'recipe[servicesfabric_apiportal::monitoring]' -j /opt/packer-chef-solo/node_override.json\n",
+                    "chef-solo -c /opt/packer-chef-solo/solo.rb -o 'recipe[servicesfabric_apiportal::logrotate]' -j /opt/packer-chef-solo/node_override.json\n",
+                    "aws s3 cp s3://devportal-artifact-069714246239/web_core/developer-web-core-legacy-10.5.1.1.1.zip /home/ec2-user/\n",
+                    "mkdir -p /usr/local/apiportal/www/a1\n",
+                    "unzip -o /home/ec2-user/developer-web-core-legacy-10.5.1.1.1.zip -d /usr/local/apiportal/www/a1/\n",
+                    "chown -R nginx:nginx /usr/local/apiportal/www\n",
+                    "chmod -R 755 /usr/local/apiportal/www\n",
+                    "cfn-signal -e $? --stack ",
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            " --resource apiportalASG",
+                            " --region ",
+                            {
+                                "Ref": "AWS::Region"
+                            },"\n"
+                ]]}}
+            },
+            "Type": "AWS::AutoScaling::LaunchConfiguration"
+        },
+
+        "apiportalASG": {
+              "CreationPolicy": {
+                  "ResourceSignal": {
+                      "Count": { "Ref": "apiportalAsgMin" },
+                      "Timeout": "PT30M"
+                  }
+              },
+              "Properties": {
+                  "AvailabilityZones": {
+                      "Ref": "VPCAvailabilityZones"
+                  },
+                  "DesiredCapacity": {
+                      "Ref": "apiportalAsgMin"
+                  },
+                  "MaxSize": {
+                      "Ref": "apiportalAsgMax"
+                  },
+                  "MinSize": {
+                      "Ref": "apiportalAsgMin"
+                  },
+                  "HealthCheckGracePeriod": 600,
+                  "HealthCheckType": "ELB",
+                  "LaunchConfigurationName": {
+                      "Ref": "apiportalInstances"
+                  },
+
+                  "MetricsCollection": [
+                      {
+                          "Granularity": "1Minute",
+                          "Metrics": [
+                              "GroupMinSize",
+                              "GroupMaxSize",
+                              "GroupDesiredCapacity",
+                              "GroupInServiceInstances",
+                              "GroupPendingInstances",
+                              "GroupTotalInstances",
+                              "GroupTerminatingInstances"
+                          ]
+                      }
+                  ],
+                  "LoadBalancerNames" : ["portalafprdblueelb"],
+                  "Tags": [
+                      {
+                          "Key": "Environment",
+                          "PropagateAtLaunch": true,
+                          "Value": { "Ref" : "apiportalenv" }
+                      },
+                      {
+                          "Key": "Partition",
+                          "PropagateAtLaunch": true,
+                          "Value": "cto"
+                      },
+                      {
+                          "Key": "Name",
+                          "PropagateAtLaunch": true,
+                          "Value": { "Fn::Join" : ["", [ "apiportal-nginx", "-", { "Ref" : "apiportalenv" }, "-ASG" ]]}
+                      }
+                  ],
+                  "VPCZoneIdentifier": {
+                      "Ref": "apiportalClusterEc2Subnets"
+                  }
+              },
+              "Type": "AWS::AutoScaling::AutoScalingGroup",
+              "UpdatePolicy": {
+                  "AutoScalingRollingUpdate": {
+                      "MaxBatchSize": "1",
+                      "MinInstancesInService": "1",
+                      "PauseTime": "PT30M"
+                  }
+                }
+              }
+  }
+}
