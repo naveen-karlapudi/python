@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": "2025-07-21T14:22:19Z",
+    "level": "ERROR",
+    "message": "Login failed",
+    "user": {
+      "id": "alice123",
+      "ip": "10.0.0.1"
+    },
+    "status_code": 401
+  },
+  {
+    "timestamp": "2025-07-21T14:23:00Z",
+    "level": "INFO",
+    "message": "Login successful",
+    "user": {
+      "id": "bob",
+      "ip": "192.168.0.2"
+    },
+    "status_code": 200
+  },
+  
+]
