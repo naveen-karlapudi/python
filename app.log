@@ -1,22 +1,92 @@
 [
   {
-    "timestamp": "2025-07-21T14:22:19Z",
+    "timestamp": "2025-07-24T14:22:19Z",
     "level": "ERROR",
-    "message": "Login failed",
-    "user": {
-      "id": "alice123",
-      "ip": "10.0.0.1"
-    },
-    "status_code": 401
+    "message": "Payment failed for user alice123",
+    "user": { "id": "alice123", "ip": "10.0.0.1" },
+    "service": "payment",
+    "status_code": 502,
+    "latency_ms": 928
   },
   {
-    "timestamp": "2025-07-21T14:23:00Z",
+    "timestamp": "2025-07-24T14:23:10Z",
     "level": "INFO",
-    "message": "Login successful",
-    "user": {
-      "id": "bob",
-      "ip": "192.168.0.2"
-    },
-    "status_code": 200
+    "message": "Payment succeeded for user bob",
+    "user": { "id": "bob", "ip": "192.168.0.2" },
+    "service": "payment",
+    "status_code": 200,
+    "latency_ms": 670
+  },
+  {
+    "timestamp": "2025-07-24T14:24:05Z",
+    "level": "ERROR",
+    "message": "Auth timeout for user charlie",
+    "user": { "id": "charlie", "ip": "172.16.0.5" },
+    "service": "auth",
+    "status_code": 504,
+    "latency_ms": 1503
+  },
+  {
+    "timestamp": "2025-07-24T14:25:00Z",
+    "level": "INFO",
+    "message": "Search query completed",
+    "user": { "id": "dave", "ip": "10.0.0.3" },
+    "service": "search",
+    "status_code": 200,
+    "latency_ms": 420
+  },
+  {
+    "timestamp": "2025-07-24T14:26:33Z",
+    "level": "ERROR",
+    "message": "Payment failed for user alice123",
+    "user": { "id": "alice123", "ip": "10.0.0.1" },
+    "service": "payment",
+    "status_code": 500,
+    "latency_ms": 1120
+  },
+  {
+    "timestamp": "2025-07-24T14:27:45Z",
+    "level": "DEBUG",
+    "message": "Cache cleared",
+    "user": { "id": "system", "ip": "127.0.0.1" },
+    "service": "cache",
+    "status_code": 200,
+    "latency_ms": 85
+  },
+  {
+    "timestamp": "2025-07-24T14:28:10Z",
+    "level": "INFO",
+    "message": "Auth succeeded for user eve",
+    "user": { "id": "eve", "ip": "203.0.113.10" },
+    "service": "auth",
+    "status_code": 200,
+    "latency_ms": 560
+  },
+  {
+    "timestamp": "2025-07-24T14:29:55Z",
+    "level": "ERROR",
+    "message": "Search failed for user frank",
+    "user": { "id": "frank", "ip": "198.51.100.20" },
+    "service": "search",
+    "status_code": 503,
+    "latency_ms": 980
+  },
+  {
+    "timestamp": "2025-07-24T14:31:02Z",
+    "level": "INFO",
+    "message": "Payment succeeded for user grace",
+    "user": { "id": "grace", "ip": "192.0.2.25" },
+    "service": "payment",
+    "status_code": 200,
+    "latency_ms": 640
+  },
+  {
+    "timestamp": "2025-07-24T14:32:10Z",
+    "level": "INFO",
+    "message": "Cache hit for user heidi",
+    "user": { "id": "heidi", "ip": "127.0.0.1" },
+    "service": "cache",
+    "status_code": 200,
+    "latency_ms": 95
   }
 ]
